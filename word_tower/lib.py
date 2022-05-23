@@ -1,15 +1,29 @@
 #https://codingcompetitions.withgoogle.com/codejam/round/0000000000877b42/0000000000afe6a1
 import os
-from FileDatabase import File
+class File:
+    def createFile(filename, content = ""):
+        if(os.path.exists(filename)):
+            print(os.path.basename(filename) + " already exists.")
+            return
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(content)
+
+    def getFileContent(filename):
+        with open(filename, "r", encoding="utf-8") as f:
+            return f.read()
 class IMerger:
     def get_merged_string(self):
         pass
     def set_towers(self):
         pass
+class IReader:
+    def get_cases(self):
+        pass
+
 class ITowerValidity:
     def check(self):
         pass
-class ChallengeReader:
+class ChallengeReader(IReader):
     def __init__(self):
         self._test_cases = []
     def set_file(self, file:str):
@@ -21,6 +35,16 @@ class ChallengeReader:
             self._test_cases.append(lines[i+1].split())
     def get_cases(self):
         return self._test_cases
+
+class CommandLineReader(IReader):
+    def get_cases(self):
+        arr = []
+        t = int(input())
+        for i in range(t):
+            input()
+            val = input()
+            arr.append(val.strip().split())
+        return arr
 class FrequencyCount:
     def set_string(self, word:str):
         self._word = word
@@ -110,7 +134,7 @@ class Merger(IMerger):
         self._str_stars_with = "starts_with"
         self._str_ends_with = "ends_with"
         self._blocks = {}
-    def set_towers(self, towers: list[str]):
+    def set_towers(self, towers):
         self._towers = towers
     def _merged_blocks(self):
         st, en = self._make_mapper().values()
@@ -172,19 +196,33 @@ class Merger(IMerger):
             res += p.value
             visited.add(p.value)
         return res, visited
+class IWriter:
+    def write(self,res):
+        pass
+class CMDOut(IWriter):
+    def write(self, res):
+        for line in res:
+            print(line)
+class FileWriter(IWriter):
+    def write(self, arr):
+        res = ""
+        for i in range(len(arr)):
+            res += f"Case #{i+1}: {arr[i]}\n"
+        File.createFile(self._out_txt, res)
+    def set_out_file(self, file: str):
+        self._out_txt = file
 class Solver:
     def __init__(self):
         self.set_combined_tower_check(ManyTowersCombinedChecker())
-        self._out_txt = "out.txt"
+        self.set_writer(CMDOut())
     def set_combined_tower_check(self, checker: ManyTowersCombinedChecker):
         self._checker =checker
-    def set_towers(self, towers: list[list[str]]):
+    def set_towers(self, towers):
         self._towers_list = towers
     def set_input_file(self, file: str):
         self._cr = ChallengeReader()
         self._cr.set_file(file)
         self.set_towers(self._cr.get_cases())
-        self._out_txt= file.replace("input.txt", "_mine_output.txt")
     def solve(self):
         res = []
         cp = self._checker
@@ -195,16 +233,15 @@ class Solver:
                 res.append(cp.get_solution())
             else:
                 res.append("IMPOSSIBLE")
+        self._writer.write(res)
         return res
-    def write_output(self, arr=None):
-        if arr is None:
-            arr = self.solve()
-        res = ""
-        for i in range(len(arr)):
-            res += f"Case #{i+1}: {arr[i]}\n"
-        File.createFile(self._out_txt, res)
+    def set_reader(self, reader: IReader):
+        self._reader = reader
+        self.set_towers(self._reader.get_cases())
+    def set_writer(self, writer: IWriter):
+        self._writer = writer
 class MergerForCyclicWords(IMerger):
-    def set_towers(self, towers: list[str]):
+    def set_towers(self, towers):
         self._towers = towers
     def _try_merging(self, arr: list):
         if len(arr) == 1:
